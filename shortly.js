@@ -1,6 +1,7 @@
 var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
+var bcrypt = require('bcrypt-nodejs');
 
 var db = require('./app/config');
 var Users = require('./app/collections/users');
@@ -8,6 +9,7 @@ var User = require('./app/models/user');
 var Links = require('./app/collections/links');
 var Link = require('./app/models/link');
 var Click = require('./app/models/click');
+
 
 var app = express();
 
@@ -20,7 +22,7 @@ app.configure(function() {
 });
 
 app.get('/', function(req, res) {
-  res.render('index');
+  res.render('login');
 });
 
 app.get('/create', function(req, res) {
@@ -30,7 +32,52 @@ app.get('/create', function(req, res) {
 app.get('/links', function(req, res) {
   Links.reset().fetch().then(function(links) {
     res.send(200, links.models);
-  })
+  });
+});
+
+app.post('/login', function(req, res) {
+  new User({
+    username : req.body.username
+  }).fetch().then(function(found) {
+    if (found) {
+      var hash = bcrypt.hashSync(req.body.password, found.attributes.salt);
+      if (hash === found.attributes.password) {
+        res.render('index');
+        return;
+      }
+      // think about rendering a <div> above form in red
+      res.end('Incorrect password');
+    } else {
+      // think about rendering a <div> above form in red
+      res.end('Incorrect username, create an account');
+    }
+  });
+});
+
+app.post('/signup', function(req, res) {
+  new User({
+    username : req.body.username
+  }).fetch().then(function(found) {
+    if (found) {
+      res.end('User already exists, feck off');
+    } else {
+      var salt = bcrypt.genSaltSync(10);
+      var hash = bcrypt.hashSync(req.body.password, salt);
+      var user = new User({
+        username : req.body.username,
+        password : hash,
+        salt     : salt
+      });
+      user.save().then(function(newUser){
+        console.log("AFTER SAVE ", newUser);
+
+        res.end('Account created');
+      });
+    }
+  });
+
+
+  res.end();
 });
 
 app.post('/links', function(req, res) {
