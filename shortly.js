@@ -28,15 +28,28 @@ app.get('/', function(req, res) {
 });
 
 app.get('/create', function(req, res) {
-
-  res.redirect('/login');
-  res.render('index');
+  app.queryCollection(req.cookies.session, function (authenticated){
+    if (authenticated) {
+      //console.log('authenticated');
+      res.render('index');
+    } else {
+      res.render('login');
+    }
+  });
 });
 
 app.get('/links', function(req, res) {
-  //res.redirect('/login');
-  Links.reset().fetch().then(function(links) {
-    res.send(200, links.models);
+  console.log("links ", req.cookies);
+  app.queryCollection(req.cookies.session, function (authenticated){
+    console.log("links ", authenticated);
+    if (authenticated) {
+      console.log('authenticated');
+      Links.reset().fetch().then(function(links) {
+        res.send(200, links.models);
+      });
+    } else {
+      res.render('login');
+    }
   });
 });
 
@@ -48,17 +61,6 @@ app.post('/login', function(req, res) {
   new User({
     username : req.body.username
   }).fetch().then(function(found) {
-
-    Session.collection().fetch().then( function (found){
-      if(found) {
-        for(var i = 0; i < found.models.length; i++){
-          if (found.models[i].attributes.active === 1) {
-            res.render('index');
-            return;
-          }
-        }
-      }
-    });
 
     if (found) {
       var hash = bcrypt.hashSync(req.body.password, found.attributes.salt);
@@ -76,7 +78,7 @@ app.post('/login', function(req, res) {
           setTimeout(function(){
             session.set('active', false);
             session.save();
-          },20000);
+          }, 30000);
         });
         res.render('index');
         return;
@@ -114,34 +116,42 @@ app.post('/signup', function(req, res) {
 });
 
 app.post('/links', function(req, res) {
-  var uri = req.body.url;
+  app.queryCollection(req.cookies.session, function (authenticated){
+    if (authenticated) {
+      //console.log('authenticated');
+      var uri = req.body.url;
 
-  if (!util.isValidUrl(uri)) {
-    console.log('Not a valid url: ', uri);
-    return res.send(404);
-  }
+      if (!util.isValidUrl(uri)) {
+        console.log('Not a valid url: ', uri);
+        return res.send(404);
+      }
 
-  new Link({ url: uri }).fetch().then(function(found) {
-    if (found) {
-      res.send(200, found.attributes);
-    } else {
-      util.getUrlTitle(uri, function(err, title) {
-        if (err) {
-          console.log('Error reading URL heading: ', err);
-          return res.send(404);
+      new Link({ url: uri }).fetch().then(function(found) {
+        if (found) {
+          res.send(200, found.attributes);
+        } else {
+          util.getUrlTitle(uri, function(err, title) {
+            if (err) {
+              console.log('Error reading URL heading: ', err);
+              return res.send(404);
+            }
+
+            var link = new Link({
+              url: uri,
+              title: title,
+              base_url: req.headers.origin
+            });
+
+            link.save().then(function(newLink) {
+              Links.add(newLink);
+              res.send(200, newLink);
+            });
+          });
         }
-
-        var link = new Link({
-          url: uri,
-          title: title,
-          base_url: req.headers.origin
-        });
-
-        link.save().then(function(newLink) {
-          Links.add(newLink);
-          res.send(200, newLink);
-        });
       });
+
+    } else {
+      res.render('login');
     }
   });
 });
@@ -149,6 +159,22 @@ app.post('/links', function(req, res) {
 /************************************************************/
 // Write your authentication routes here
 /************************************************************/
+
+app.queryCollection = function (sessionKey, callback) {
+
+  Session.collection().fetch().then( function (found){
+    if(found) {
+      for(var i = 0; i < found.models.length; i++){
+        if (found.models[i].attributes.active === 1 && found.models[i].attributes.session === sessionKey) {
+          callback(true);
+          return;
+        }
+      }
+      callback(false);
+    }
+  });
+
+};
 
 
 
