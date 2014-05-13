@@ -10,15 +10,16 @@ var Links = require('./app/collections/links');
 var Link = require('./app/models/link');
 var Click = require('./app/models/click');
 var Session = require('./app/models/session');
+var Sessions = require('./app/collections/sessions');
 
 
 var app = express();
-
 app.configure(function() {
   app.set('views', __dirname + '/views');
   app.set('view engine', 'ejs');
   app.use(partials());
-  app.use(express.bodyParser())
+  app.use(express.bodyParser());
+  app.use(express.cookieParser());
   app.use(express.static(__dirname + '/public'));
 });
 
@@ -48,9 +49,17 @@ app.post('/login', function(req, res) {
     username : req.body.username
   }).fetch().then(function(found) {
 
-    //console.log(found);
-    console.log(found.sessions);
-    //console.log(found.sessions());
+    Session.collection().fetch().then( function (found){
+      if(found) {
+        for(var i = 0; i < found.models.length; i++){
+          if (found.models[i].attributes.active === 1) {
+            res.render('index');
+            return;
+          }
+        }
+      }
+    });
+
     if (found) {
       var hash = bcrypt.hashSync(req.body.password, found.attributes.salt);
       if (hash === found.attributes.password) {
@@ -62,11 +71,12 @@ app.post('/login', function(req, res) {
           createdat: (new Date).toString()
         });
 
+        res.cookie('session', sessionKey);
         session.save().then(function(session) {
           setTimeout(function(){
             session.set('active', false);
             session.save();
-          },10000);
+          },20000);
         });
         res.render('index');
         return;
