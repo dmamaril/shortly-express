@@ -27,6 +27,11 @@ app.get('/', function(req, res) {
   res.render('login');
 });
 
+app.get('/logout', function(req, res) {
+  res.cookie('session', '');
+  res.render('login');
+});
+
 app.get('/create', function(req, res) {
   app.queryCollection(req.cookies.session, function (authenticated){
     if (authenticated) {
