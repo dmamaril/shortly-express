@@ -3,8 +3,9 @@ var util = require('./lib/utility');
 var partials = require('express-partials');
 var bcrypt = require('bcrypt-nodejs');
 var passport = require('passport');
-var passport_github = require('passport-github');
+var GitHubStrategy = require('passport-github').Strategy;
 
+debugger;
 var db = require('./app/config');
 var User = require('./app/models/user');
 var Links = require('./app/collections/links');
@@ -12,17 +13,6 @@ var Link = require('./app/models/link');
 var Click = require('./app/models/click');
 var Session = require('./app/models/session');
 
-// passport.use(new GitHubStrategy({
-//   clientID: 'c18c036364286ea235fd',
-//   clientsecret: 'c196d1ae3749a4336ac69ef0b54adbb77a404420',
-//   callbackURL: 'http://conorfennell.io:3000/auth/github/callback'
-// },
-//   function(accessToken, refreshToken, profile, done) {
-//     User.findOrCreate({ githubId: profile.id}, function (err, user){
-//       return done(err, user);
-//     });
-//   }
-// ));
 
 var app = express();
 app.configure(function() {
@@ -32,6 +22,49 @@ app.configure(function() {
   app.use(express.bodyParser());
   app.use(express.cookieParser());
   app.use(express.static(__dirname + '/public'));
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  passport.use(new GitHubStrategy({
+    clientID: 'c18c036364286ea235fd',
+    clientSecret: 'c196d1ae3749a4336ac69ef0b54adbb77a404420',
+    callbackURL: 'http://shortl.azurewebsites.net/auth/github/callback'
+  },
+    function(accessToken, refreshToken, profile, done) {
+      console.log("Authenticate!");
+      process.nextTick(function() {
+        done(null, profile);
+      });
+      // User.findOrCreate({ githubId: profile.id}, function (err, user){
+      //   return done(err, user);
+      // });
+    }
+  ));
+
+  passport.serializeUser(function(user, done){
+    console.log("serial!");
+    done(null, user);
+  });
+  passport.deserializeUser(function(obj, done){
+    console.log("deserial!");
+    done(null, done);
+  });
+
+});
+
+app.get('/auth/github', passport.authenticate('github'));
+
+app.get('/auth/github/callback', passport.authenticate('github', {
+  successredirect: '/success',
+  failureRedirect: '/error'
+}));
+
+app.get('/success', function(req, res, next){
+  res.end('Logged in!');
+});
+
+app.get('/error', function(req, res, next){
+  res.end('Error logging in');
 });
 
 app.get('/', function(req, res) {
