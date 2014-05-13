@@ -9,6 +9,7 @@ var User = require('./app/models/user');
 var Links = require('./app/collections/links');
 var Link = require('./app/models/link');
 var Click = require('./app/models/click');
+var Session = require('./app/models/session');
 
 
 var app = express();
@@ -26,30 +27,57 @@ app.get('/', function(req, res) {
 });
 
 app.get('/create', function(req, res) {
+
+  res.redirect('/login');
   res.render('index');
 });
 
 app.get('/links', function(req, res) {
+  //res.redirect('/login');
   Links.reset().fetch().then(function(links) {
     res.send(200, links.models);
   });
+});
+
+app.get('/signup', function (req, res) {
+  res.render('signup');
 });
 
 app.post('/login', function(req, res) {
   new User({
     username : req.body.username
   }).fetch().then(function(found) {
+
+    //console.log(found);
+    console.log(found.sessions);
+    //console.log(found.sessions());
     if (found) {
       var hash = bcrypt.hashSync(req.body.password, found.attributes.salt);
       if (hash === found.attributes.password) {
+        var sessionKey = bcrypt.genSaltSync(10);
+        var session = new Session({
+          session  : sessionKey,
+          username : req.body.username,
+          active   : true,
+          createdat: (new Date).toString()
+        });
+
+        session.save().then(function(session) {
+          setTimeout(function(){
+            session.set('active', false);
+            session.save();
+          },10000);
+        });
         res.render('index');
         return;
       }
       // think about rendering a <div> above form in red
       res.end('Incorrect password');
+
     } else {
       // think about rendering a <div> above form in red
-      res.end('Incorrect username, create an account');
+      //res.end('Incorrect username, create an account');
+      res.render('signup');
     }
   });
 });
@@ -69,15 +97,10 @@ app.post('/signup', function(req, res) {
         salt     : salt
       });
       user.save().then(function(newUser){
-        console.log("AFTER SAVE ", newUser);
-
-        res.end('Account created');
+        res.end(' account created');
       });
     }
   });
-
-
-  res.end();
 });
 
 app.post('/links', function(req, res) {
