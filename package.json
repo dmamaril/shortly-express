@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "description": "shortly using express",
   "main": "shortly.js",
+  "scripts": {
+      "start" : "node shortly.js"
+    },
   "repository": "",
   "license": "Proprietary",
   "private": true,

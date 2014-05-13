@@ -12,17 +12,17 @@ var Link = require('./app/models/link');
 var Click = require('./app/models/click');
 var Session = require('./app/models/session');
 
-passport.use(new GitHubStrategy({
-  clientID: 'c18c036364286ea235fd',
-  clientsecret: 'c196d1ae3749a4336ac69ef0b54adbb77a404420',
-  callbackURL: 'http://conorfennell.io:3000/auth/github/callback'
-},
-  function(accessToken, refreshToken, profile, done) {
-    User.findOrCreate({ githubId: profile.id}, function (err, user){
-      return done(err, user);
-    });
-  }
-));
+// passport.use(new GitHubStrategy({
+//   clientID: 'c18c036364286ea235fd',
+//   clientsecret: 'c196d1ae3749a4336ac69ef0b54adbb77a404420',
+//   callbackURL: 'http://conorfennell.io:3000/auth/github/callback'
+// },
+//   function(accessToken, refreshToken, profile, done) {
+//     User.findOrCreate({ githubId: profile.id}, function (err, user){
+//       return done(err, user);
+//     });
+//   }
+// ));
 
 var app = express();
 app.configure(function() {
