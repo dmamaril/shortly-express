@@ -51,19 +51,24 @@ app.configure(function() {
   });
 
 });
-
+app.all('*', function(req, res, next){
+  console.log(req);
+  next();
+});
 app.get('/auth/github', passport.authenticate('github'));
 
 app.get('/auth/github/callback', passport.authenticate('github', {
-  successredirect: '/success',
+  successRedirect: '/success',
   failureRedirect: '/error'
 }));
 
 app.get('/success', function(req, res, next){
+  console.log('Logged');
   res.end('Logged in!');
 });
 
 app.get('/error', function(req, res, next){
+  console.log('Error');
   res.end('Error logging in');
 });
 
