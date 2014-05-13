@@ -2,16 +2,27 @@ var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bcrypt = require('bcrypt-nodejs');
+var passport = require('passport');
+var passport_github = require('passport-github');
 
 var db = require('./app/config');
-var Users = require('./app/collections/users');
 var User = require('./app/models/user');
 var Links = require('./app/collections/links');
 var Link = require('./app/models/link');
 var Click = require('./app/models/click');
 var Session = require('./app/models/session');
-var Sessions = require('./app/collections/sessions');
 
+passport.use(new GitHubStrategy({
+  clientID: 'c18c036364286ea235fd',
+  clientsecret: 'c196d1ae3749a4336ac69ef0b54adbb77a404420',
+  callbackURL: 'http://conorfennell.io:3000/auth/github/callback'
+},
+  function(accessToken, refreshToken, profile, done) {
+    User.findOrCreate({ githubId: profile.id}, function (err, user){
+      return done(err, user);
+    });
+  }
+));
 
 var app = express();
 app.configure(function() {
